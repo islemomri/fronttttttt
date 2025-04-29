@@ -1,0 +1,79 @@
+<div class="professional-container">
+  <!-- Header Section -->
+  <div class="header-section">
+      <h2>Archives des Types de Diplômes</h2>
+      <p>Consultez et gérez les types de diplômes archivés dans votre système</p>
+  </div>
+
+  <!-- Card Container -->
+  <div class="p-card">
+      <div class="p-card-body">
+          <!-- Toolbar with modern design -->
+          <div class="toolbar">
+              <span class="p-input-icon-left search-box">
+                 
+                  <input pInputText type="text" [(ngModel)]="searchText" 
+                  (input)="applyFilter($event)"  
+                         placeholder="Rechercher un type de diplôme..." 
+                         class="custom-search" />
+              </span>
+          </div>
+
+          <!-- Enhanced Table inside Card -->
+          <div class="table-container mt-4">
+              <p-table #dt [value]="typeDiplomes"  [paginator]="true" [rows]="10" 
+                      [rowsPerPageOptions]="[5, 10, 20, 50]" [globalFilterFields]="['libelleTypeDiplome']"
+                      styleClass="modern-table p-datatable-gridlines" [tableStyle]="{ 'min-width': '100%' }" >
+
+                  <ng-template pTemplate="header">
+                      <tr>
+                          <th style="width: 80%">Libellé</th>
+                          <th style="width: 20%">Actions</th>
+                      </tr>
+                  </ng-template>
+
+                  <ng-template pTemplate="body" let-typeDiplome>
+                      <tr>
+                          <td>
+                              <span class="poste-title">{{ typeDiplome.libelleTypeDiplome }}</span>
+                          </td>
+                          <td>
+                              <button pButton icon="pi pi-undo" 
+                                      class="p-button-rounded p-button-text p-button-plain restore-button" 
+                                      (click)="deleteTypeDiplome(typeDiplome.id)" pTooltip="Restaurer">
+                                      Restaurer
+                              </button>
+                          </td>
+                      </tr>
+                  </ng-template>
+
+                  <ng-template pTemplate="emptymessage">
+                      <tr>
+                          <td colspan="2">
+                              <div class="empty-message">
+                                  <i class="pi pi-info-circle"></i>
+                                  Aucun type de diplôme archivé trouvé
+                              </div>
+                          </td>
+                      </tr>
+                  </ng-template>
+              </p-table>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Formulaire de modification de type de diplôme -->
+<p-dialog header="Modifier le Type de Diplôme" [(visible)]="visibleEdit" [modal]="true" [style]="{ width: '25rem' }">
+  <form [formGroup]="editTypeDiplomeForm">
+      <div class="flex flex-column gap-3">
+          <label for="editLibelle">Libellé :</label>
+          <input pInputText id="editLibelle" formControlName="libelleTypeDiplome" class="p-inputtext p-component" />
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4">
+          <p-button label="Annuler" severity="secondary" (click)="visibleEdit = false"></p-button>
+          <p-button label="Enregistrer" (click)="updateTypeDiplome()"></p-button>
+      </div>
+  </form>
+</p-dialog>

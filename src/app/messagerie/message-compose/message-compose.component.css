@@ -1,0 +1,224 @@
+.compose-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+.compose-header {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: #2B3467;
+  color: white;
+  position: relative;
+}
+
+.compose-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.back-btn, .action-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.back-btn:hover, .action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.compose-form {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #34495e;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: calc(100% - 40px);
+}
+
+.select-wrapper select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  appearance: none;
+  font-size: 0.9rem;
+  transition: border 0.2s;
+}
+
+.select-wrapper select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.select-wrapper i {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #7f8c8d;
+}
+
+.add-recipient {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-recipient:hover {
+  background: #2980b9;
+}
+
+input[type="text"], textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border 0.2s;
+}
+
+input[type="text"]:focus, textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+textarea {
+  min-height: 200px;
+  resize: vertical;
+}
+
+.message-editor {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.editor-toolbar {
+  display: flex;
+  padding: 0.5rem;
+  background: #f5f5f5;
+  border-top: 1px solid #ddd;
+}
+
+.tool-btn {
+  background: transparent;
+  border: none;
+  color: #7f8c8d;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  color: #2c3e50;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-btn, .send-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cancel-btn {
+  background: #f5f5f5;
+  color: #7f8c8d;
+  border: 1px solid #ddd;
+}
+
+.cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.send-btn {
+  background: #2ecc71;
+  color: white;
+  border: none;
+}
+
+.send-btn:hover {
+  background: #27ae60;
+}
+
+/* Animation pour le bouton d'envoi */
+.send-btn i {
+  transition: transform 0.2s;
+}
+
+.send-btn:hover i {
+  transform: translateX(2px);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .compose-container {
+    margin: 0;
+    border-radius: 0;
+    min-height: 100vh;
+  }
+  
+  .form-actions {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: 1rem;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  }
+}

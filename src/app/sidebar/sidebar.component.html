@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sidebar Menu with PrimeIcons</title>
+  <!-- Linking PrimeIcons -->
+  <link rel="stylesheet" href="https://unpkg.com/primeicons/primeicons.css" />
+  <!-- Linking CSS file -->
+  <link rel="stylesheet" href="sidebar.css" />
+</head>
+
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="/home"><img src="assad.png" alt="logo" /></a>
+      <h2>RH ASSAD</h2>
+    </div>
+    <ul class="sidebar-links">
+      <h4>
+        <span>Main Menu</span>
+        <div class="menu-separator"></div>
+      </h4>
+      <li *ngIf="isRH()">
+        <a href="/list-employe-existants">
+          <i class="pi pi-user"></i> Employés exportés
+        </a>
+        <a href="/ListeEmploye">
+          <i class="pi pi-users"></i> Employés
+        </a>
+      </li>
+      <!-- sidebar.component.html -->
+      
+<li *ngIf="isRH() || isResponsable()">
+  <a href="/notifications">
+    <i class="pi pi-bell text-3xl" 
+       pBadge 
+       [value]="unreadNotificationsCount" 
+       [severity]="'danger'"
+       *ngIf="unreadNotificationsCount > 0"></i>
+    <i class="pi pi-bell text-3xl" *ngIf="unreadNotificationsCount === 0"></i>
+    Notifications
+  </a>
+</li>
+      <li>
+        <a href="/messages" class="messagerie-item">
+          <i class="pi pi-inbox"></i>
+          Messagerie
+        </a>
+      </li>
+      <li *ngIf="isAdmin() || isRH() || isDirecteur()">
+        <a href="/gestion-permissions">
+          <i class="pi pi-check-circle"></i> Permissions
+        </a>
+      </li>
+
+      <li *ngIf="isRH()">
+        <a href="list-site">
+          <i class="pi pi-building"></i> Les Sites
+        </a>
+      </li>
+
+      <li *ngIf="isResponsable()">
+        <a href="formations-responsable">
+          <i class="pi pi-building"></i> Les formations
+        </a>
+      </li>
+
+      <li *ngIf="isRH()">
+        <a href="formations">
+          <i class="pi pi-desktop"></i> Les Formations
+        </a>
+      </li>
+
+      <li *ngIf="isRH()">
+        <a href="list-directions">
+          <i class="pi pi-sitemap"></i> Les Directions
+        </a>
+      </li>
+      <li *ngIf="isRH()">
+        <a href="/gerer-diplomes">
+          <i class="pi pi-graduation-cap"></i> Les Diplômes
+        </a>
+      </li>
+      <li *ngIf="isRH()">
+        <a href="/list-types">
+          <i class="pi pi-list"></i> Types Diplômes
+        </a>
+      </li>
+
+      <li *ngIf="isRH()">
+        <a href="/list-Poste">
+          <i class="pi pi-briefcase"></i> Les postes
+        </a>
+      </li>
+      <li *ngIf="isRH()">
+        <a href="/chart">
+          <i class="pi pi-chart-bar"></i> Chart
+        </a>
+      </li>
+      <li *ngIf="isAdmin()">
+        <a href="/signup">
+          <i class="pi pi-user-plus"></i> Ajouter un utilisateur
+        </a>
+      </li>
+      <li *ngIf="isRH() || isAdmin() || isDirecteur()">
+        <a href="/list-utilisateurs">
+          <i class="pi pi-users"></i> Liste des utilisateurs
+        </a>
+      </li>
+      <h4>
+        <span>General</span>
+        <div class="menu-separator"></div>
+      </h4>
+      <li>
+        <a href="archive">
+          <i class="pi pi-folder"></i> Archive
+        </a>
+      </li>
+      <li>
+        <a href="#">
+          <i class="pi pi-users"></i> Groups
+        </a>
+      </li>
+      <li>
+        <a href="#">
+          <i class="pi pi-arrow-right-arrow-left"></i> Transfer
+        </a>
+      </li>
+      <li>
+        <a href="#">
+          <i class="pi pi-flag"></i> All Reports
+        </a>
+      </li>
+      <li>
+        <a href="#">
+          <i class="pi pi-bell"></i> Notifications
+        </a>
+      </li>
+      <h4>
+        <span>Account</span>
+        <div class="menu-separator"></div>
+      </h4>
+      <li>
+        <a href="#">
+          <i class="pi pi-user"></i> Profile
+        </a>
+      </li>
+      <li>
+        <a href="#">
+          <i class="pi pi-cog"></i> Settings
+        </a>
+      </li>
+      <li>
+        <a (click)="logout()" style="cursor: pointer;">
+          <i class="pi pi-sign-out"></i> Logout
+        </a>
+      </li>
+    </ul>
+    <div class="user-account">
+      <div class="user-profile">
+        <img src="/assets/user.png" alt="Profile Image" style="width: 120px; height: 80px;" />
+        <div class="user-detail">
+          <h3>{{ userDetails.prenom }} {{ userDetails.nom }}</h3>
+          <span>
+            <span *ngIf="isRH()">RH ASSAD</span>
+            <span *ngIf="isAdmin()">ADMIN ASSAD</span>
+            <span *ngIf="isDirecteur()">DIRECTEUR ASSAD</span>
+            <span *ngIf="isResponsable()">RESPONSABLE ASSAD</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</body>
+
+</html>

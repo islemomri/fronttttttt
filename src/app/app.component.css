@@ -1,0 +1,34 @@
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  background-color:#ffffff;
+  ;
+}
+
+app-sidebar {
+  width: 85px; /* Largeur initiale */
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  transition: width 0.4s ease;
+  background: #52525f;
+}
+
+app-sidebar:hover {
+  width: 260px;
+}
+
+.main-content {
+  flex-grow: 1; /* Occupe tout l’espace restant */
+  margin-left: 85px; /* Même largeur que la sidebar */
+  padding: 20px;
+  transition: margin-left 0.4s ease;
+ 
+}
+
+app-sidebar:hover + .main-content {
+  margin-left: 260px; /* Ajuste la marge quand la sidebar est étendue */
+}

@@ -1,0 +1,147 @@
+<div class="professional-container">
+  <!-- Header Section -->
+  <div class="header-section">
+      <h2>Gestion des Diplômes</h2>
+      <p>Gérez et organisez les diplômes disponibles dans votre organisation</p>
+  </div>
+
+  <!-- Table Container -->
+  <div class="table-container">
+      <!-- Toolbar with modern design -->
+      <div class="toolbar">
+          <!-- Search Box -->
+          <form class="form">
+              <label for="search">
+                  <input 
+                      required="" 
+                      autocomplete="off" 
+                      placeholder="Rechercher un diplôme..." 
+                      id="search" 
+                      type="text"
+                      [(ngModel)]="globalFilter"
+                      (input)="applyFilter($event)"
+                      name="search"
+                      class="custom-search"
+                  />
+                  <div class="icon">
+                      <svg stroke-width="2" stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="swap-on">
+                          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linejoin="round" stroke-linecap="round"></path>
+                      </svg>
+                  </div>
+                  <button *ngIf="globalFilter" type="reset" class="close-btn" (click)="globalFilter = ''; dt?.filterGlobal('', 'contains')">
+                      <svg viewBox="0 0 20 20" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg">
+                          <path clip-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill-rule="evenodd"></path>
+                      </svg>
+                  </button>
+              </label>
+          </form>
+          
+          <div class="action-buttons">
+              <button pButton icon="pi pi-plus" label="Nouveau Diplôme" 
+                      class="p-button-raised p-button-primary add-button" 
+                      (click)="visible = true"></button>
+          </div>
+      </div>
+
+      <!-- Enhanced Table -->
+      <p-table #dt [value]="diplomes" [paginator]="true" [rows]="10"
+          [globalFilterFields]="['libelle', 'typeDiplome.libelleTypeDiplome']"
+          styleClass="modern-table" [tableStyle]="{'min-width': '75rem'}">
+
+          <ng-template pTemplate="header">
+              <tr>
+                  <th style="width: 60%">Libellé</th>
+                  <th style="width: 30%">Type de Diplôme</th>
+                  <th style="width: 10%">Actions</th>
+              </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-diplome>
+              <tr>
+                  <td>
+                      <span class="poste-title">{{ diplome.libelle }}</span>
+                  </td>
+                  <td>
+                      <span class="type-diplome">{{ diplome.typeDiplome?.libelleTypeDiplome || 'Non spécifié' }}</span>
+                  </td>
+                  <td>
+                      <div class="action-icons">
+                          <button pButton icon="pi pi-pencil" 
+                                  class="p-button-rounded p-button-text p-button-plain edit-button" 
+                                  (click)="showEditDialog(diplome)" pTooltip="Modifier">
+                          </button>
+                          <button pButton icon="pi pi-trash" 
+                                  class="p-button-rounded p-button-text p-button-plain delete-button" 
+                                  (click)="confirmDelete(diplome.id)" pTooltip="Supprimer">
+                          </button>
+                      </div>
+                  </td>
+              </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+              <tr>
+                  <td colspan="3">
+                      <div class="empty-message">
+                          <i class="pi pi-info-circle"></i>
+                          Aucun diplôme trouvé
+                      </div>
+                  </td>
+              </tr>
+          </ng-template>
+      </p-table>
+  </div>
+</div>
+
+<!-- Formulaire d'ajout -->
+<p-dialog header="Ajouter un Diplôme" [(visible)]="visible" [modal]="true" [style]="{ width: '30rem', height: '25rem', maxWidth: '50vw', maxHeight: '90vh' }">
+  <form #form="ngForm" (ngSubmit)="onSubmit(form)">
+      <div class="p-field">
+          <label for="libelle">Libellé du Diplôme </label>
+          <input pInputText id="libelle" name="libelle" [(ngModel)]="libelleDiplome" required #libelle="ngModel" />
+          <div *ngIf="libelle.invalid && libelle.touched" class="p-error">Libellé est requis</div>
+      </div>
+
+      <div class="p-field">
+          <label for="typeDiplome">Type de Diplôme </label>
+          <p-dropdown id="typeDiplome" [(ngModel)]="selectedTypeId" name="typeDiplome"
+              [options]="typeDiplomes" optionLabel="libelleTypeDiplome" optionValue="id"
+              placeholder="Sélectionnez un type" [showClear]="true" [style]="{'margin-top':'20px'}">
+          </p-dropdown>
+          <div *ngIf="selectedTypeId == null" class="p-error" style="color: red;">*Type de diplôme est requis</div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 150px;">
+          <button pButton label="Annuler" icon="pi pi-times" class="p-button-text" (click)="visible = false" severity="danger"></button>
+          <button pButton label="Ajouter" icon="pi pi-check" class="p-button-success" [disabled]="form.invalid" type="submit"></button>
+      </div>
+  </form>
+</p-dialog>
+
+<!-- Formulaire de mise à jour -->
+<p-dialog header="Modifier un Diplôme" [(visible)]="editVisible" [modal]="true" [style]="{ width: '30rem', height: '25rem', maxWidth: '50vw', maxHeight: '90vh' }">
+  <form *ngIf="editingDiplome" #editForm="ngForm" (ngSubmit)="onUpdateSubmit(editForm)">
+      <div class="p-field">
+          <label for="editLibelle">Libellé </label>
+          <input pInputText id="editLibelle" name="libelle" [(ngModel)]="editingDiplome.libelle" required #editLibelle="ngModel" />
+          <div *ngIf="editLibelle.invalid && editLibelle.touched" class="p-error">Libellé est requis</div>
+      </div>
+
+      <div class="p-field">
+          <label for="editTypeDiplome">Type de Diplôme </label>
+          <p-dropdown id="editTypeDiplome" [(ngModel)]="selectedTypeId" name="typeDiplome"
+              [options]="typeDiplomes" optionLabel="libelleTypeDiplome" optionValue="id"
+              placeholder="Sélectionnez un type" [showClear]="true" [style]="{'margin-top':'20px'}">
+          </p-dropdown>
+          <div *ngIf="selectedTypeId == null" class="p-error">Type de diplôme est requis</div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 150px;">
+          <button pButton label="Annuler" icon="pi pi-times" class="p-button-text" (click)="editVisible = false" severity="danger"></button>
+          <button pButton label="Modifier" icon="pi pi-check" class="p-button-success" [disabled]="editForm.invalid" type="submit"></button>
+      </div>
+  </form>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>

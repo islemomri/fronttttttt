@@ -1,0 +1,52 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<div class="compose-container">
+  <div class="compose-header">
+    
+    <h2>Nouveau message</h2>
+    <div class="header-actions">
+      
+    </div>
+  </div>
+
+  <form (ngSubmit)="envoyer()" class="compose-form">
+    <div class="form-group">
+      <label for="destinataire">À :</label>
+      <div class="select-wrapper">
+        <select id="destinataire" [(ngModel)]="message.destinataireId" name="destinataireId" required>
+          <option value="">Sélectionnez un destinataire</option>
+          <option *ngFor="let user of utilisateurs" [value]="user.id">
+            {{ user.nom }} {{ user.prenom }} ({{ user.role }})
+          </option>
+        </select>
+        <i class="fas fa-chevron-down"></i>
+      </div>
+      
+    </div>
+
+    <div class="form-group">
+      <label for="sujet">Objet :</label>
+      <input type="text" id="sujet" [(ngModel)]="message.sujet" name="sujet" placeholder="Objet du message" required>
+    </div>
+
+    <div class="form-group message-editor">
+      <textarea id="contenu" [(ngModel)]="message.contenu" name="contenu" 
+                placeholder="Écrivez votre message ici..." required></textarea>
+      <div class="editor-toolbar">
+        <button type="button" class="tool-btn" matTooltip="Gras"><i class="fas fa-bold"></i></button>
+        <button type="button" class="tool-btn" matTooltip="Italique"><i class="fas fa-italic"></i></button>
+        <button type="button" class="tool-btn" matTooltip="Liste"><i class="fas fa-list-ul"></i></button>
+        <button type="button" class="tool-btn" matTooltip="Lien"><i class="fas fa-link"></i></button>
+        <button type="button" class="tool-btn" matTooltip="Pièce jointe"><i class="fas fa-paperclip"></i></button>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="button" class="cancel-btn" routerLink="/messages">
+        <i class="fas fa-times"></i> Annuler
+      </button>
+      <button type="submit" class="send-btn">
+        <i class="fas fa-paper-plane"></i> Envoyer
+      </button>
+    </div>
+  </form>
+</div>

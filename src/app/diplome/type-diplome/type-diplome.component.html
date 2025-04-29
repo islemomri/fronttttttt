@@ -1,0 +1,113 @@
+<p-confirmDialog></p-confirmDialog>
+
+<div class="professional-container">
+    <!-- Header Section -->
+    <div class="header-section">
+        <h2>Gestion des Types de Diplômes</h2>
+        <p>Gérez et organisez les différents types de diplômes dans votre système</p>
+    </div>
+
+    <!-- Table Container -->
+    <div class="table-container">
+        <!-- Toolbar with modern design -->
+        <div class="toolbar">
+            <form class="form">
+                <label for="search">
+                    <input 
+                        required="" 
+                        autocomplete="off" 
+                        placeholder="Rechercher..." 
+                        id="search" 
+                        type="text"
+                        [(ngModel)]="globalFilter"
+                        (input)="applyFilter($event)"
+                        name="search"
+                        class="custom-search"
+                    />
+                    
+                   
+                </label>
+            </form>
+            
+            <div class="action-buttons">
+                <button pButton label="Ajouter un diplôme" icon="pi pi-plus" 
+                        class="p-button-raised p-button-primary add-button" 
+                        (click)="showAddDialog()"></button>
+            </div>
+        </div>
+
+        <!-- Enhanced Table -->
+        <p-table #dt [value]="typeDiplomes" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[5, 10, 20]"
+                [globalFilterFields]="['libelleTypeDiplome']" styleClass="modern-table" 
+                [tableStyle]="{ 'min-width': '20rem' }">
+
+            <ng-template pTemplate="header">
+                <tr>
+                    <th >Libellé</th>
+                    <th  >Actions</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-typeDiplome>
+                <tr>
+                    <td>{{ typeDiplome.libelleTypeDiplome }}</td>
+                    <td>
+                        <div class="action-icons">
+                            <button pButton icon="pi pi-pencil" 
+                                    class="p-button-rounded p-button-text p-button-plain edit-button" 
+                                    (click)="showEditDialog(typeDiplome)" pTooltip="Modifier">
+                            </button>
+                            <button pButton icon="pi pi-trash" 
+                                    class="p-button-rounded p-button-text p-button-plain delete-button" 
+                                    (click)="confirmArchiver(typeDiplome.id)" pTooltip="Supprimer">
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="2">
+                        <div class="empty-message">
+                            <i class="pi pi-info-circle"></i>
+                            Aucun type de diplôme trouvé
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+</div>
+
+<!-- Boîte de dialogue pour ajouter un type de diplôme -->
+<p-dialog header="Ajouter un Type de Diplôme" [(visible)]="visibleAdd" [modal]="true" 
+          [style]="{ width: '25rem' }" [contentStyle]="{ 'max-height': '500px', 'overflow-y': 'auto' }">
+    <form [formGroup]="typeDiplomeForm">
+        <div class="flex flex-column gap-3">
+            <label for="libelleTypeDiplome">Libellé :</label>
+            <input pInputText id="libelleTypeDiplome" formControlName="libelleTypeDiplome" class="p-inputtext p-component" />
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button pButton label="Annuler" icon="pi pi-times" class="p-button-text" (click)="visibleAdd = false" severity="danger"></button>
+            <button pButton label="Enregistrer" icon="pi pi-check" class="p-button-text" (click)="addTypeDiplome()" type="submit" severity="success"></button>
+        </div>
+    </form>
+</p-dialog>
+  
+<!-- Formulaire de modification de type de diplôme -->
+<p-dialog header="Modifier le Type de Diplôme" [(visible)]="visibleEdit" [modal]="true" 
+          [style]="{ width: '25rem' }" [contentStyle]="{ 'max-height': '500px', 'overflow-y': 'auto' }">
+    <form [formGroup]="editTypeDiplomeForm">
+        <div class="flex flex-column gap-3">
+            <label for="editLibelle">Libellé :</label>
+            <input pInputText id="editLibelle" formControlName="libelleTypeDiplome" class="p-inputtext p-component" />
+        </div>
+  
+        <div class="flex justify-end gap-2 mt-4">
+            <button pButton label="Annuler" icon="pi pi-times" class="p-button-text" (click)="visibleEdit = false" severity="danger"></button>
+            <button pButton label="Enregistrer" icon="pi pi-check" class="p-button-text" (click)="updateTypeDiplome()" type="submit" severity="success"></button>
+        </div>
+    </form>
+</p-dialog>
