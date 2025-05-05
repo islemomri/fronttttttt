@@ -28,7 +28,5 @@ export interface FormationDto {
     periodes?: PeriodeFormationDto[];
     dateAnnulation?: string;
     entete?: Entete; 
-    reference?: string;
-    revisionNumber?: number;
-    dateApplication?: string;
+  
 }

@@ -1,5 +1,7 @@
 export interface Entete {
-    id?: number;      // facultatif car généré par le backend
-    libelle: string;
-  }
-  
+  id?: number;              
+  libelle: string;
+  reference: string;
+  numerorevision: number;
+  dateApplication: string| Date; 
+}

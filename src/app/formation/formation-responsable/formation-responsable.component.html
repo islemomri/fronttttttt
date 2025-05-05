@@ -971,11 +971,7 @@
               pTooltip="Générer un PDF complet" 
               tooltipPosition="top"></button>
       
-      <!-- Bouton Imprimer -->
-      <button *ngIf="pdfUrls[employe.id]" pButton icon="pi pi-print" 
-              (click)="printPdf()"
-              class="p-button-rounded p-button-outlined action-button"
-              pTooltip="Imprimer le document" tooltipPosition="top"></button>
+   
       
       <!-- Bouton Choisir PDF (visible seulement pour les formations en attente) -->
 
@@ -1007,15 +1003,7 @@
                      accept="application/pdf" style="display: none;" />
             </div>
             
-            <!-- Statut du document -->
-            <div class="document-status">
-              <span *ngIf="pdfUrls[employe.id]" class="status-available">
-                <i class="pi pi-check-circle"></i> Document disponible
-              </span>
-              <span *ngIf="!pdfUrls[employe.id]" class="status-unavailable">
-                <i class="pi pi-times-circle"></i> Document non disponible
-              </span>
-            </div>
+         
           </td>
         </tr>
       </ng-template>

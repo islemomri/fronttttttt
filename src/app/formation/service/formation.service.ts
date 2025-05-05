@@ -16,6 +16,7 @@ export class FormationService {
 
  // Modifier le type de retour pour Observable<number>
  creerFormation(formData: FormData): Observable<number> {
+  
   return this.http.post<number>(`${this.apiUrl}`, formData);
 }
   getFormationsParRH(rhId: number): Observable<FormationDto[]> {

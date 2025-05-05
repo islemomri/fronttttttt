@@ -39,6 +39,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DirectionService } from '../direction/service/direction.service';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { ListboxModule } from 'primeng/listbox';
+
 import { FormationDto_Resultat } from './model/FormationDto_Resultat';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { PeriodeFormationDto } from './model/PeriodeFormationDto';
@@ -46,6 +47,10 @@ import { EnteteService } from './service/EnteteService';
 import { Entete } from './model/Entete';
 import { MessageModule } from 'primeng/message';
 import { ChipModule } from 'primeng/chip';
+
+
+
+
 interface FormationPosteId {
   formationId: number;
   posteId: number;
@@ -173,6 +178,7 @@ constructor(private fb: FormBuilder,
   private changeDetectorRef: ChangeDetectorRef,
   private directionservice: DirectionService,
   private formationPosteService: FormationPosteService,
+  
   private confirmationService: ConfirmationService,
   private ngZone: NgZone,
   
@@ -212,7 +218,8 @@ constructor(private fb: FormBuilder,
     responsableEvaluationExterne: [''],
     employeIds: [[]],
     titrePoste: [null], // Doit pouvoir accepter un objet Poste complet
-    fichierPdf: [null]
+    enteteId: [null, Validators.required], // Ajout du champ entête
+    periodes: [[]], 
     
   });
 
@@ -234,9 +241,7 @@ constructor(private fb: FormBuilder,
     selectedCitiesModif: [[]],
     responsableType: [null],
     entete: [null, Validators.required ],
-    reference: [''],
-    revisionNumber: [null],
-    dateApplication: [null],
+   
     
     // Contrôles dynamiques pour les parties
     ...this.createPartieControls()
@@ -249,12 +254,93 @@ constructor(private fb: FormBuilder,
 
 }
 
+dateDebutFinValidator(group: FormGroup): any {
+  const dateDebut = group.get('dateDebutPartie' + group.get('index')?.value)?.value;
+  const dateFin = group.get('dateFinPartie' + group.get('index')?.value)?.value;
+
+  if (dateDebut && dateFin && new Date(dateFin) <= new Date(dateDebut)) {
+    group.get('dateFinPartie' + group.get('index')?.value)?.setErrors({ dateInvalide: true });
+  } else {
+    const control = group.get('dateFinPartie' + group.get('index')?.value);
+    if (control?.hasError('dateInvalide')) {
+      control.setErrors(null);
+    }
+  }
+  return null;
+}
+
+
+
+
+
+
+
+
+
+// Variables pour gérer les périodes complémentaires
+periodesComplementary: PeriodeFormationDto[] = [];
+selectedEnteteComplementary: Entete | null = null;
+
+// Méthodes pour gérer l'entête
+onEnteteSelectComplementary(entete: Entete): void {
+  this.selectedEnteteComplementary = entete;
+}
+
+shouldShowEnteteSectionComplementary(): boolean {
+  return this.complementaryProgramForm.get('sousTypeFormation')?.value === 'INTEGRATION' || 
+         this.complementaryProgramForm.get('sousTypeFormation')?.value === 'POLYVALENCE';
+}
+isPolyOrIntegrationComplementary(): boolean {
+  return this.complementaryProgramForm.get('sousTypeFormation')?.value === 'INTEGRATION' || 
+         this.complementaryProgramForm.get('sousTypeFormation')?.value === 'POLYVALENCE';
+}
+
+peutAjouterPeriodeComplementary(): boolean {
+  const poste = this.complementaryProgramForm.get('titrePoste')?.value;
+  return this.isPolyOrIntegrationComplementary() && 
+         poste?.lesProgrammesDeFormation?.length &&
+         this.periodesComplementary.length < poste.lesProgrammesDeFormation.length;
+}
+
+ajouterPeriodeComplementary(): void {
+  const dateDebutControl = this.complementaryProgramForm.get('dateDebut');
+  const dateFinControl = this.complementaryProgramForm.get('dateFin');
+  const formateurControl = this.complementaryProgramForm.get('formateur');
+  const programmeControl = this.complementaryProgramForm.get('programme');
+
+  if (
+    dateDebutControl?.value &&
+    dateFinControl?.value &&
+    formateurControl?.value &&
+    programmeControl?.value
+  ) {
+    this.periodesComplementary.push({
+      dateDebut: this.formatDate(new Date(dateDebutControl.value)),
+      dateFin: this.formatDate(new Date(dateFinControl.value)),
+      formateur: formateurControl.value.trim(),
+      programme: programmeControl.value
+    });
+  } else {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Champs manquants',
+      detail: 'Veuillez remplir tous les champs de la période complémentaire avant de l’ajouter.'
+    });
+  }
+}
+
+supprimerPeriodeComplementary(index: number): void {
+  this.periodesComplementary.splice(index, 1);
+}
 createPartieControls(): { [key: string]: AbstractControl } {
   const controls: { [key: string]: AbstractControl } = {};
   
   for (let i = 0; i < this.nombrePartiesArray.length; i++) {
     controls[`dateDebutPartie${i}`] = new FormControl('', Validators.required);
-    controls[`dateFinPartie${i}`] = new FormControl('', Validators.required);
+    controls[`dateFinPartie${i}`] = new FormControl('', [
+      Validators.required,
+      this.validateDateFinPartie(i)  // Validation personnalisée
+    ]);
     controls[`formateurPartie${i}`] = new FormControl('', Validators.required);
     controls[`programmePartie${i}`] = new FormControl('', Validators.required);
   }
@@ -328,6 +414,7 @@ editComment(formation: FormationDto) {
     this.displayCalendarDialog = true;
     this.loadCalendarEvents();
   }
+  
 
 
 
@@ -500,8 +587,36 @@ editComment(formation: FormationDto) {
     this.filterTextValidees = '';
     this.tableValidees.filterGlobal('', 'contains');
   }
- 
-
+  validateDateFinPartie(partieIndex: number) {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const dateDebut = this.formationForm.get(`dateDebutPartie${partieIndex}`)?.value;
+      const dateFin = control.value;
+  
+      console.log(`Validation de la date fin pour la partie ${partieIndex}`);
+      console.log(`Date début partie ${partieIndex}:`, dateDebut);
+      console.log(`Date fin entrée pour partie ${partieIndex}:`, dateFin);
+  
+      if (dateDebut && dateFin) {
+        const debut = new Date(dateDebut);
+        const fin = new Date(dateFin);
+  
+        console.log(`Date début transformée en objet Date:`, debut);
+        console.log(`Date fin transformée en objet Date:`, fin);
+  
+        if (fin <= debut) {
+          console.log('La date de fin est avant ou égale à la date de début');
+          return { dateInvalide: true };
+        }
+      }
+  
+      console.log('Validation réussie : la date de fin est valide');
+      return null;
+    };
+  }
+  
+  
+  
+  
   validateDateFin(control: AbstractControl): ValidationErrors | null {
     const dateFin = control.value;
     const dateDebut = this.formationForm?.get('dateDebutPrevue')?.value;
@@ -680,12 +795,14 @@ editComment(formation: FormationDto) {
   }
   onPosteSelect(event: any) {
     const selectedPoste = event.value;
-     this.selectedPosteId = event.value.id; 
+     this.selectedPosteId = event.value.id;
+     this.posteSelectionne = selectedPoste;  
     console.log('ID du poste sélectionné :', this.selectedPosteId);
     if (selectedPoste && selectedPoste.document) {
       // Récupérer le contenu Base64 du PDF
       const base64Data = selectedPoste.document;
       this.initialiserParties();
+      
       // Convertir le Base64 en un Blob (fichier binaire)
       const byteCharacters = atob(base64Data); // Décoder Base64
       const byteNumbers = new Array(byteCharacters.length);
@@ -767,7 +884,7 @@ editComment(formation: FormationDto) {
   hideDialog() {
     this.displayDialog = false;
   }
-  
+  currentPoste: any;
   // Méthode pour ouvrir la popup de modification
   openModificationDialog(formation: any) {
     this.loadEntetes();
@@ -826,7 +943,31 @@ editComment(formation: FormationDto) {
 // Initialiser le type de responsable
 this.selectedResponsableTypeModif = formation.responsableEvaluationId ? 'INTERNE' : 'EXTERNE';
     // Trouver le poste actuel
-    const currentPoste = this.postes.find(poste => poste.titre === formation.titrePoste);
+    this.formationPosteService.getPosteByFormationId(formation.id).subscribe({
+      next: (poste) => {
+        // Met à jour le champ du formulaire avec le poste récupéré
+        this.modificationForm.patchValue({
+          titrePoste: poste
+        });
+    
+        // Si le poste a un document PDF, le charger
+        if (poste && poste.document) {
+          this.loadPdfIntoIframe(poste.document);
+        } else {
+          this.pdfUrl = null;
+        }
+    
+        // Détection de changements
+        this.changeDetectorRef.detectChanges();
+      },
+      error: (err) => {
+        console.error("Erreur lors de la récupération du poste", err);
+        this.modificationForm.patchValue({
+          titrePoste: null
+        });
+      }
+    });
+    
     this.selectedResponsableTypeModif = formation.responsableEvaluationId ? 'INTERNE' : 'EXTERNE';
     const currentEntete = this.entetes.find(e => e.id === formation.entete.id);
     // Remplir le formulaire
@@ -841,7 +982,7 @@ this.selectedResponsableTypeModif = formation.responsableEvaluationId ? 'INTERNE
         responsableEvaluationId: formation.responsableEvaluation?.id || null,
         responsableEvaluationExterne: formation.responsableEvaluationExterne || '',
         employeIds: employeIds,
-        titrePoste: currentPoste,
+        titrePoste: this.currentPoste,
         reference: formation.reference || '',
         revisionNumber: formation.revisionNumber || '',
         dateApplication: new Date(formation.dateApplication),
@@ -863,14 +1004,7 @@ this.selectedResponsableTypeModif = formation.responsableEvaluationId ? 'INTERNE
       this.modificationForm.get('responsableType')?.enable();
   }
     this.changeDetectorRef.detectChanges(); 
-    
-  
-    // Afficher le PDF du poste
-    if (currentPoste && currentPoste.document) {
-        this.loadPdfIntoIframe(currentPoste.document);
-    } else {
-        this.pdfUrl = null;
-    }
+
 }
 
 
@@ -1022,6 +1156,11 @@ closeModificationDialog() {
   this.selectedFile = null;
   this.pdfUrl = null;
 }
+alertVisible: boolean = false;
+alertSeverity: string = 'success'; // success, info, warn, error
+alertMessage: string = '';
+periodeErrors: string[] = [];
+
 submitFormation() {
   if (this.formationForm.invalid) {
     this.messageService.add({
@@ -1038,12 +1177,18 @@ submitFormation() {
     });
     return;
   }
+  
 
   if (this.formationForm.valid) {
+
+    this.alertMessage = 'Formation créée avec succès !';
+    this.alertSeverity = 'success';
+    this.alertVisible = true;
     const formValues = this.formationForm.getRawValue();
     const rhId = Number(localStorage.getItem('RHID'));
     const periodes: PeriodeFormationDto[] = [];
-  
+    const dateDebutGlobale = new Date(formValues.dateDebutPrevue);
+    const dateFinGlobale = new Date(formValues.dateFinPrevue);
     for (let i = 0; i < this.nombrePartiesArray.length; i++) {
       const dateDebutControl = this.formationForm.get(`dateDebutPartie${i}`);
       const dateFinControl = this.formationForm.get(`dateFinPartie${i}`);
@@ -1051,6 +1196,19 @@ submitFormation() {
       const programmeControl = this.formationForm.get(`programmePartie${i}`);
       
       if (dateDebutControl?.value && dateFinControl?.value && formateurControl?.value && programmeControl?.value) {
+        const dateDebutPartie = new Date(dateDebutControl.value);
+    const dateFinPartie = new Date(dateFinControl.value);
+    if (dateDebutPartie < dateDebutGlobale || dateFinPartie > dateFinGlobale) {
+      if (dateDebutPartie < dateDebutGlobale || dateFinPartie > dateFinGlobale) {
+        this.periodeErrors[i] = `La période de la partie ${i + 1} doit être comprise entre la date de début prévue et la date de fin prévue de la formation.`;
+        return;
+      } else {
+        this.periodeErrors[i] = ''; // Pas d’erreur
+      }
+      
+      return;
+    }
+
         periodes.push({
           dateDebut: this.formatDate(new Date(dateDebutControl.value)),
           dateFin: this.formatDate(new Date(dateFinControl.value)),
@@ -1125,9 +1283,7 @@ submitFormation() {
       formData.append('dateDebutPrevue', formValues.dateDebutPrevue.toISOString().split('T')[0]);
       formData.append('dateFinPrevue', formValues.dateFinPrevue.toISOString().split('T')[0]);
     
-    formData.append('revisionNumber', formValues.revisionNumber);
-    formData.append('reference', formValues.reference);
-    formData.append('dateApplication', formValues.dateApplication.toISOString().split('T')[0]);
+    
     formData.append('enteteId', formValues.enteteId.id.toString());
 
 
@@ -1205,27 +1361,25 @@ showPreview() {
   for (let i = 0; i < this.nombrePartiesArray.length; i++) {
     const dateDebut = formValues[`dateDebutPartie${i}`];
     const dateFin = formValues[`dateFinPartie${i}`];
-    const formateur = formValues[`formateurPartie${i}`]; // ✅ ajout du champ formateur
+    const formateur = formValues[`formateurPartie${i}`];
     const programme = formValues[`programmePartie${i}`];
     if (dateDebut && dateFin && formateur) {
       periodes.push({
-        dateDebut: this.formatDate(dateDebut),  // formatte les dates
-        dateFin: this.formatDate(dateFin),      // formatte les dates
-        formateur: formateur.trim()    ,
-        programme: programme.trim() 
+        dateDebut: this.formatDate(dateDebut),
+        dateFin: this.formatDate(dateFin),
+        formateur: formateur.trim(),
+        programme: programme.trim()
       });
     }
   }
 
-  // Initialiser un poste vide pour éviter des erreurs si le poste est manquant
   const defaultPoste = {
     lesProgrammesDeFormation: [],
-    // Ajoute d'autres propriétés si nécessaires pour le template
   };
 
   const posteId = formValues.titrePoste?.id;
 
-  // Vérifier si un poste est sélectionné
+  // Supposition : formValues.entete est déjà un objet bien structuré
   if (posteId) {
     this.posteService.getPosteById(posteId).subscribe({
       next: (poste) => {
@@ -1237,10 +1391,10 @@ showPreview() {
       }
     });
   } else {
-    // Si aucun poste n'est sélectionné, afficher la prévisualisation avec un poste par défaut
     this.preparePreviewData(formValues, periodes, defaultPoste);
   }
 }
+
 
 confirmCreation() {
   this.confirmationService.confirm({
@@ -1272,11 +1426,20 @@ confirmCreation() {
 private preparePreviewData(formValues: any, periodes: PeriodeFormationDto[], poste: any) {
   // Répartir les programmes de formation entre les périodes
   const programmesParPartie = this.repartirProgrammes(poste?.ProgrammesDeFormation || [], periodes.length);
+  let entete: any = formValues.enteteId;
+
+  if (typeof entete !== 'object') {
+    entete = this.entetes.find(e => e.id === entete);
+  }
 
   // Prepare preview data
   this.previewData = {
     ...formValues,
-    libelle: formValues.enteteId?.libelle || 'Entête de formation',
+    libelle: entete?.libelle || 'Entête de formation',
+    reference: entete?.reference || 'Entête de formation',
+    numerorevision: entete?.numerorevision ?? 0,
+    dateApplication: entete?.dateApplication   ? new Date(entete.dateApplication).toLocaleDateString('fr-FR') 
+    : 'Non définie',
     periodes: periodes.map((periode, index) => ({
       ...periode,
       programmes: programmesParPartie[index] || [] // Ajoute les programmes à chaque période
@@ -1711,9 +1874,7 @@ this.formationsIntegrationACorriger = this.formationsIntegration.filter(f =>
       annuler: data.annuler,
       dateAnnulation: data.dateAnnulation, 
       entete: data.entete, 
-      dateApplication: data.dateApplication,
-      revisionNumber: data.revisionNumber, 
-      reference: data.reference, 
+     
       periodes: data.periodes ? data.periodes.map((periode: any) => ({
         dateDebut: periode.dateDebut,
         dateFin: periode.dateFin,
@@ -2057,169 +2218,169 @@ updateResultat(formationId: number, employeId: number, resultat: string, employe
     });
   }
 }
+
 prepareComplementaryProgramForm(employe: any, formation: any) {
   this.selectedEmployeeForComplementary = employe;
   
-  // Trouver le poste correspondant au titre de la formation originale
+  // Trouver le poste correspondant
   const currentPoste = this.postes.find(poste => poste.titre === formation.titrePoste);
   
+  // Initialiser les périodes si nécessaire
+ 
+    this.periodesComplementary = formation.periodes.map((periode: any) => ({
+      dateDebut:new Date(periode.dateDebut),
+      dateFin: new Date(periode.dateFin),
+      formateur: periode.formateur || '',
+      programme: periode.programme || ''
+    }));
+    console.log(this.periodesComplementary);  // Ajoute cette ligne pour voir les périodes dans la console
+  
+  
+  
+  // Trouver l'entête de la formation originale
+  const currentEntete = formation.entete;
+
   this.complementaryProgramForm.patchValue({
     titre: `Programme complémentaire - ${formation.titre}`,
     description: formation.description,
     typeFormation: formation.typeFormation,
     sousTypeFormation: formation.sousTypeFormation,
     dateDebutPrevue: new Date(),
-    dateFinPrevue: new Date(new Date().setDate(new Date().getDate() + 7)), // +7 jours par défaut
-    responsableType: this.selectedResponsableTypeModif,  // <-- Ajoutez cette ligne
-        responsableEvaluationId: formation.responsableEvaluation?.id || null,
-        responsableEvaluationExterne: formation.responsableEvaluationExterne || '',
+    dateFinPrevue: new Date(new Date().setDate(new Date().getDate() + 7)),
+    responsableType: 'INTERNE',
+    responsableEvaluationId: formation.responsableEvaluation?.id || null,
     employeIds: [employe.id],
-    titrePoste: currentPoste || null
+    titrePoste: currentPoste || null,
+    enteteId: currentEntete || null
   });
 
-  // Charger le PDF du poste s'il existe
-  if (currentPoste?.document) {
-    this.loadComplementaryPdf(currentPoste.document);
-  } else {
-    this.complementaryPdfUrl = null;
-  }
-
-  // Désactiver les champs si nécessaire (comme dans le dialogue de modification)
-  if (formation.sousTypeFormation === 'INTEGRATION' || formation.sousTypeFormation === 'POLYVALENCE') {
-    this.complementaryProgramForm.get('typeFormation')?.disable();
-    this.complementaryProgramForm.get('sousTypeFormation')?.disable();
-  }
+  this.selectedEnteteComplementary = currentEntete;
+}
+onPosteSelectcomp(event: any) {
+  this.posteSelectionne = event.value;
+  console.log('Poste sélectionné:', this.posteSelectionne); // Pour vérification
 }
 submitComplementaryProgram() {
-  if (this.complementaryProgramForm.valid) {
-    const formValues = this.complementaryProgramForm.getRawValue();
-    const rhId = Number(localStorage.getItem('RHID'));
-
-    // Création de FormData pour gérer les fichiers et les données
-    const formData = new FormData();
-
-    // Ajout des champs obligatoires
-    formData.append('titre', formValues.titre);
-    formData.append('description', formValues.description);
-    formData.append('typeFormation', formValues.typeFormation);
-    formData.append('sousTypeFormation', formValues.sousTypeFormation);
-    formData.append('dateDebutPrevue', this.formatDate(formValues.dateDebutPrevue));
-    formData.append('dateFinPrevue', this.formatDate(formValues.dateFinPrevue));
-    formData.append('organisateurId', rhId.toString());
-
-    // Gestion du responsable (interne ou externe)
-   
-    if (formValues.responsableEvaluationId) {
-      formData.append('responsableEvaluationId', formValues.responsableEvaluationId.toString());
-    }
-    if (formValues.responsableEvaluationExterne) {
-      formData.append('responsableEvaluationExterne', formValues.responsableEvaluationExterne);
-    }
-
-    // Gestion des employés (adapté selon votre modèle)
-    if (formValues.employeIds && formValues.employeIds.length > 0) {
-      formValues.employeIds.forEach((id: number) => {
-        formData.append('employeIds', id.toString());
-      });
-    }
-
-    // Gestion du fichier PDF (identique à votre logique existante)
-    if (formValues.fichierPdf) {
-      if (typeof formValues.fichierPdf === 'string' && formValues.fichierPdf.startsWith('JVBERi0')) {
-        const pdfFile = this.base64ToFile(formValues.fichierPdf, 'document.pdf');
-        formData.append('fichierPdf', pdfFile);
-      } else if (formValues.fichierPdf instanceof File) {
-        formData.append('fichierPdf', formValues.fichierPdf);
-      }
-    } else {
-      // Fallback pour fichier vide si nécessaire
-      formData.append('fichierPdf', new Blob(), 'empty.pdf');
-    }
-
-    // Gestion du titre de poste si pertinent
-    if (formValues.titrePoste) {
-      formData.append('titrePoste', formValues.titrePoste.titre || formValues.titrePoste);
-      
-      if (formValues.titrePoste.document) {
-        // Même logique de conversion que pour fichierPdf
-      }
-    }
-
-    // Appel du service
-    this.formationservice.creerFormation(formData).subscribe({
-      next: (formationId) => {
-        this.formationservice.ajouterResultatFormation(
-          this.selectedFormation.id, 
-          this.selectedEmployeeForComplementary.id, 
-          'PROGRAMME_COMPLEMENTAIRE'
-        ).subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Succès',
-              detail: 'Programme complémentaire créé et résultat enregistré avec succès'
-            });
-            
-            // Fermer le dialogue et rafraîchir
-            this.displayComplementaryProgramDialog = false;
-            this.loadFormations();
-          },
-          error: (err) => {
-            console.error('Erreur enregistrement résultat:', err);
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Erreur',
-              detail: 'Le programme a été créé mais le résultat n\'a pas pu être enregistré'
-            });
-          }
-        });
-
-
-
-
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Succès',
-          detail: 'Programme complémentaire créé avec succès'
-        });
-        
-        // Fermer le dialogue et rafraîchir
-        this.displayComplementaryProgramDialog = false;
-        this.loadFormations();
-
-        // Gestion supplémentaire si nécessaire (comme pour formationPoste)
-        if (this.posteSelectionne && this.posteSelectionne.id) {
-          this.formationPosteService.addPair(formationId, this.posteSelectionne.id).subscribe({
-            next: () => console.log('Association poste réussie'),
-            error: (err) => console.error('Erreur association poste', err)
-          });
-        }
-      },
-      error: (error) => {
-        console.error('Erreur création programme:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Erreur',
-          detail: error.error?.message || 'Échec de la création du programme'
-        });
-      }
-    });
-  } else {
-    // Gestion des erreurs de formulaire
+  if (this.complementaryProgramForm.invalid) {
     this.messageService.add({
       severity: 'error',
       summary: 'Erreur',
-      detail: 'Formulaire incomplet ou invalide'
+      detail: 'Veuillez remplir tous les champs obligatoires'
     });
-    
-    // Log des erreurs pour debug
-    Object.keys(this.complementaryProgramForm.controls).forEach(key => {
-      const control = this.complementaryProgramForm.get(key);
-      if (control?.errors) console.log(`${key} errors:`, control.errors);
-    });
+    return;
   }
+
+  const formValues = this.complementaryProgramForm.getRawValue();
+  const rhId = Number(localStorage.getItem('RHID'));
+
+  // Préparer les périodes valides
+  const periodesValides = this.periodesComplementary
+    .filter(p => p.dateDebut && p.dateFin && p.formateur && p.programme)
+    .map(p => ({
+      dateDebut: this.formatDate(p.dateDebut),
+      dateFin: this.formatDate(p.dateFin),
+      formateur: p.formateur,
+      programme: p.programme
+    }));
+
+  const formData = new FormData();
+  formData.append('titre', formValues.titre);
+  formData.append('description', formValues.description);
+  formData.append('typeFormation', formValues.typeFormation);
+  formData.append('sousTypeFormation', formValues.sousTypeFormation);
+  formData.append('dateDebutPrevue', formValues.dateDebutPrevue.toISOString().split('T')[0]);
+  formData.append('dateFinPrevue', formValues.dateFinPrevue.toISOString().split('T')[0]);
+  formData.append('organisateurId', rhId.toString());
+  
+  if (formValues.enteteId) {
+    formData.append('enteteId', formValues.enteteId.id.toString());
+  }
+
+  if (periodesValides.length > 0) {
+    formData.append('periodes', JSON.stringify(periodesValides));
+  }
+
+  if (formValues.responsableEvaluationId) {
+    formData.append('responsableEvaluationId', formValues.responsableEvaluationId.toString());
+  }
+
+  formValues.employeIds.forEach((id: number) => {
+    formData.append('employeIds', id.toString());
+  });
+
+  if (formValues.titrePoste) {
+    formData.append('titrePoste', formValues.titrePoste.titre);
+  }
+
+  this.formationservice.creerFormation(formData).subscribe({
+    next: (formationId) => {
+      // 1. Enregistrer le résultat pour l'employé
+      this.formationservice.ajouterResultatFormation(
+        this.selectedFormation.id, 
+        this.selectedEmployeeForComplementary.id, 
+        'PROGRAMME_COMPLEMENTAIRE'
+      ).subscribe({
+        next: () => {
+          // 2. Utilisez this.posteSelectionne
+          if (this.posteSelectionne?.id) {
+            console.log('Ajout de la paire:', {
+              formationId: formationId,
+              poste: this.posteSelectionne  // Envoyez l'objet complet si nécessaire
+            });
+            
+            this.formationPosteService.addPair(formationId, this.posteSelectionne.id).subscribe({
+              next: () => {
+                console.log('Paire formation-poste ajoutée avec succès');
+                this.displayFormationPosteList();
+                this.showSuccessMessage();
+                this.closeComplementaryDialog();
+                this.loadFormations();
+              },
+              error: (posteError) => {
+                console.error('Erreur ajout paire formation-poste:', posteError);
+                this.showPartialSuccessMessage();
+              }
+            });
+          } else {
+            console.warn('Aucun poste sélectionné');
+            this.showSuccessMessage();
+            this.closeComplementaryDialog();
+            this.loadFormations();
+          }
+        },
+        error: (resultatError) => {
+          console.error('Erreur enregistrement résultat:', resultatError);
+          this.showPartialSuccessMessage();
+        }
+      });
+    },
+    error: (formationError) => {
+      console.error('Erreur création programme:', formationError);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: formationError.error?.message || 'Échec de la création du programme'
+      });
+    }
+  });
 }
 
+// Méthodes utilitaires pour les messages
+private showSuccessMessage() {
+  this.messageService.add({
+    severity: 'success',
+    summary: 'Succès',
+    detail: 'Programme complémentaire créé avec succès'
+  });
+}
+
+private showPartialSuccessMessage() {
+  this.messageService.add({
+    severity: 'warn',
+    summary: 'Avertissement',
+    detail: 'Le programme a été créé mais certaines opérations secondaires ont échoué'
+  });
+}
 
 private handleSuccess() {
   this.messageService.add({
@@ -2551,8 +2712,11 @@ private loadComplementaryPdf(document: string | File) {
 }
 closeComplementaryDialog() {
   this.displayComplementaryProgramDialog = false;
+  this.complementaryProgramForm.reset();
+  this.periodesComplementary = [];
+  this.selectedEnteteComplementary = null;
   
-  // Nettoyer l'URL du PDF
+  // Nettoyer l'URL du PDF si nécessaire
   if (this.complementaryPdfUrl) {
     const unsafeUrl = this.sanitizer.sanitize(SecurityContext.RESOURCE_URL, this.complementaryPdfUrl);
     if (unsafeUrl) {
@@ -2560,8 +2724,6 @@ closeComplementaryDialog() {
     }
     this.complementaryPdfUrl = null;
   }
-  
-  this.complementaryProgramForm.reset();
 }
 
 
@@ -2582,7 +2744,7 @@ isPolyOrIntegration(): boolean {
 
 updateDateFields(): void {
   // Supprimer tous les contrôles existants
-  for (let i = 0; i < 10; i++) { // Supposons un maximum de 10 parties
+  for (let i = 0; i < 10; i++) {
     ['dateDebutPartie', 'dateFinPartie', 'formateurPartie', 'programmePartie'].forEach(prefix => {
       if (this.formationForm.get(`${prefix}${i}`)) {
         this.formationForm.removeControl(`${prefix}${i}`);
@@ -2594,82 +2756,180 @@ updateDateFields(): void {
   this.nombrePartiesArray = [];
 
   // Vérifier si un poste est sélectionné
-if (this.posteSelectionne && this.posteSelectionne.lesProgrammesDeFormation) {
-  const lesProgrammes = this.posteSelectionne.lesProgrammesDeFormation;
-  const nbProgrammes = lesProgrammes.length;
+  if (this.posteSelectionne && this.posteSelectionne.lesProgrammesDeFormation) {
+    const lesProgrammes = this.posteSelectionne.lesProgrammesDeFormation;
+    const nbProgrammes = lesProgrammes.length;
 
-  if (nbProgrammes > 0) {
-    this.nombrePartiesArray = Array.from({ length: nbProgrammes }, (_, i) => i);
+    if (nbProgrammes > 0) {
+      this.nombrePartiesArray = Array.from({ length: nbProgrammes }, (_, i) => i);
 
-    this.nombrePartiesArray.forEach(i => {
-      this.formationForm.addControl(`dateDebutPartie${i}`, new FormControl('', Validators.required));
-      this.formationForm.addControl(`dateFinPartie${i}`, new FormControl('', Validators.required));
-      this.formationForm.addControl(`formateurPartie${i}`, new FormControl('', Validators.required));
+      this.nombrePartiesArray.forEach(i => {
+        this.formationForm.addControl(`dateDebutPartie${i}`, new FormControl('', Validators.required));
+        this.formationForm.addControl(`dateFinPartie${i}`, new FormControl('', Validators.required));
+        this.formationForm.addControl(`formateurPartie${i}`, new FormControl('', Validators.required));
 
-      const programmeInitial = lesProgrammes[i] || '';
-      this.formationForm.addControl(
-        `programmePartie${i}`,
-        new FormControl(programmeInitial, Validators.required)
-      );
-    });
+        const programmeInitial = lesProgrammes[i] || '';
+        this.formationForm.addControl(
+          `programmePartie${i}`,
+          new FormControl(programmeInitial, Validators.required)
+        );
+
+        // Ajouter le validateur personnalisé pour la date de fin
+        const dateFinCtrl = this.formationForm.get(`dateFinPartie${i}`);
+        if (dateFinCtrl) {
+          dateFinCtrl.setValidators([
+            Validators.required,
+            this.validateDateFinPartie(i),
+            this.validateDateOverlap(i)
+          ]);
+          dateFinCtrl.updateValueAndValidity();
+        }
+      });
+    }
   }
 }
 
+// Validateur personnalisé pour vérifier si une date se chevauche avec les autres parties
+// Validateur personnalisé pour vérifier si une date se chevauche avec les autres parties
+validateDateOverlap(index: number) {
+  return (control: AbstractControl) => {
+    const dateFin = control.value;
+
+    // Vérification que les contrôles existent avant d'y accéder
+    const dateDebutPartieCtrl = this.formationForm.get(`dateDebutPartie${index}`);
+    const dateDebutPartie = dateDebutPartieCtrl ? dateDebutPartieCtrl.value : null;
+
+    if (!dateDebutPartie) {
+      return null; // Si la date de début de cette partie est null, on ne fait pas la validation
+    }
+
+    for (let i = 0; i < this.nombrePartiesArray.length; i++) {
+      if (i !== index) {
+        // Vérification que les contrôles existent avant d'y accéder
+        const dateDebutAutrePartieCtrl = this.formationForm.get(`dateDebutPartie${i}`);
+        const dateFinAutrePartieCtrl = this.formationForm.get(`dateFinPartie${i}`);
+
+        const dateDebutAutrePartie = dateDebutAutrePartieCtrl ? dateDebutAutrePartieCtrl.value : null;
+        const dateFinAutrePartie = dateFinAutrePartieCtrl ? dateFinAutrePartieCtrl.value : null;
+
+        if (dateDebutAutrePartie && dateFinAutrePartie) {
+          // Vérifier le chevauchement des périodes
+          if (dateDebutPartie < dateFinAutrePartie && dateFin > dateDebutAutrePartie) {
+            return { dateOverlap: true }; // La période chevauche une autre partie
+          }
+        }
+      }
+    }
+    return null; // Aucun chevauchement
+  };
 }
+
+
+
+
+
+
 // Variables de classe
 nombrePartiesInitial: number = 0;
 
 
-// Après avoir chargé les programmes du poste
 initialiserParties() {
   const nbProgrammes = this.posteSelectionne?.lesProgrammesDeFormation?.length || 0;
+  console.log(`Initialisation des parties, nombre de programmes : ${nbProgrammes}`);
   this.nombrePartiesInitial = nbProgrammes;
-  this.nombrePartiesArray = Array.from({length: nbProgrammes}, (_, i) => i);
+  this.nombrePartiesArray = Array.from({ length: nbProgrammes }, (_, i) => i);
+
+  // Vérifier que le tableau de parties est correctement initialisé
+  console.log('Tableau des parties initialisées :', this.nombrePartiesArray);
+
   this.creerControlesParties();
 }
 
 creerControlesParties() {
-  // Supprimer tous les contrôles existants
+  // Supprimer les anciens contrôles
   for (let i = 0; i < 10; i++) {
     ['dateDebutPartie', 'dateFinPartie', 'formateurPartie', 'programmePartie'].forEach(prefix => {
       if (this.formationForm.get(`${prefix}${i}`)) {
+        console.log(`Suppression du contrôle ${prefix}${i}`);
         this.formationForm.removeControl(`${prefix}${i}`);
       }
     });
   }
 
-  // Créer les contrôles pour chaque partie
+  // Étape 1 : Créer tous les contrôles SANS le validateur personnalisé
   this.nombrePartiesArray.forEach(i => {
     this.formationForm.addControl(`dateDebutPartie${i}`, new FormControl('', Validators.required));
     this.formationForm.addControl(`dateFinPartie${i}`, new FormControl('', Validators.required));
     this.formationForm.addControl(`formateurPartie${i}`, new FormControl('', Validators.required));
-    
+  
     const programmeInitial = this.posteSelectionne?.lesProgrammesDeFormation?.[i] || '';
-    this.formationForm.addControl(
-      `programmePartie${i}`,
-      new FormControl(programmeInitial, Validators.required)
-    );
+    this.formationForm.addControl(`programmePartie${i}`, new FormControl(programmeInitial, Validators.required));
+  
+    // Ajouter le validateur personnalisé pour la date de fin
+    const dateFinCtrl = this.formationForm.get(`dateFinPartie${i}`);
+    if (dateFinCtrl) {
+      dateFinCtrl.setValidators([
+        Validators.required,
+        this.validateDateFinPartie(i)
+      ]);
+      dateFinCtrl.updateValueAndValidity();
+    }
+  
+    console.log(`Contrôles créés pour la partie ${i}`);
+  });
+  
+
+  // Étape 2 : Ajouter les validateurs personnalisés APRÈS que tous les champs existent
+  this.nombrePartiesArray.forEach(i => {
+    const dateDebutCtrl = this.formationForm.get(`dateDebutPartie${i}`);
+    const dateFinCtrl = this.formationForm.get(`dateFinPartie${i}`);
+  
+    if (dateDebutCtrl && dateFinCtrl) {
+      dateDebutCtrl.valueChanges.subscribe(() => {
+        console.log(`Changement dans dateDebutPartie${i}, mise à jour de dateFinPartie${i}`);
+        dateFinCtrl.updateValueAndValidity();
+      });
+    }
+  });
+  
+
+  this.nombrePartiesArray.forEach(i => {
+    const dateFinCtrl = this.formationForm.get(`dateFinPartie${i}`);
+    if (dateFinCtrl) {
+      dateFinCtrl.updateValueAndValidity({ onlySelf: true, emitEvent: true });
+    }
   });
 }
+
+
+
 
 // Vérifie si on peut ajouter une partie
 peutAjouterPartie(): boolean {
   return this.nombrePartiesArray.length < this.nombrePartiesInitial;
 }
-
-// Ajoute une nouvelle partie
 ajouterPartie() {
   if (this.peutAjouterPartie()) {
     const nouvellePartieIndex = this.nombrePartiesArray.length;
     this.nombrePartiesArray.push(nouvellePartieIndex);
     
-    // Ajouter les nouveaux contrôles
+    // Ajouter les nouveaux contrôles avec la validation personnalisée
     this.formationForm.addControl(`dateDebutPartie${nouvellePartieIndex}`, new FormControl('', Validators.required));
-    this.formationForm.addControl(`dateFinPartie${nouvellePartieIndex}`, new FormControl('', Validators.required));
+    this.formationForm.addControl(`dateFinPartie${nouvellePartieIndex}`, new FormControl('', [
+      Validators.required,
+      this.validateDateFinPartie(nouvellePartieIndex)  // Validation personnalisée
+    ]));
     this.formationForm.addControl(`formateurPartie${nouvellePartieIndex}`, new FormControl('', Validators.required));
     this.formationForm.addControl(`programmePartie${nouvellePartieIndex}`, new FormControl('', Validators.required));
+    
+    // Mettre à jour la validité de dateFinPartie lorsque dateDebutPartie change
+    this.formationForm.get(`dateDebutPartie${nouvellePartieIndex}`)?.valueChanges.subscribe(() => {
+      this.formationForm.get(`dateFinPartie${nouvellePartieIndex}`)?.updateValueAndValidity();
+    });
   }
 }
+
+
 
 // Supprime une partie
 supprimerPartie(index: number) {
@@ -2687,6 +2947,7 @@ supprimerPartie(index: number) {
     
     // Recréer tous les contrôles avec les nouveaux index
     this.creerControlesParties();
+
   }
 }
 
@@ -2694,15 +2955,32 @@ supprimerPartie(index: number) {
 // Variables pour le dialogue
 displayEnteteDialog: boolean = false;
 
-newEntete: Entete = { libelle: '' };
+newEntete: Entete = { 
+  libelle: '',
+  reference: '',
+  numerorevision: 0,
+  dateApplication: '' };
 
 // Ouvrir le dialogue
-openEnteteDialog() {
-  this.displayEnteteDialog = true;
-  this.resetForm(); // Ajoutez cette ligne
-  this.loadEntetes();
+closeEnteteDialog() {
+  this.displayEnteteDialog = false;
+  this.resetForm();
 }
 
+// Modify the openEnteteDialog method
+openEnteteDialog(enteteToEdit?: Entete) {
+  this.loadEntetes(); 
+  if (enteteToEdit) {
+    this.editingEntete = enteteToEdit;
+    this.newEntete = { 
+      ...enteteToEdit,
+      dateApplication: enteteToEdit.dateApplication ? new Date(enteteToEdit.dateApplication) : new Date()
+    };
+  } else {
+    this.resetForm();
+  }
+  this.displayEnteteDialog = true;
+}
 
 
 // Ajouter une nouvelle entête
@@ -2712,7 +2990,13 @@ addEntete() {
   this.enteteService.createEntete(this.newEntete).subscribe({
     next: (createdEntete) => {
       this.entetes.push(createdEntete);
-      this.newEntete = { libelle: '' };
+      this.newEntete = {
+        libelle: '',
+        reference: '',
+        numerorevision: 0,
+        dateApplication: '' // ou une date initiale comme '2025-05-01'
+      };
+      
       this.messageService.add({
         severity: 'success',
         summary: 'Succès',
@@ -2733,8 +3017,15 @@ addEntete() {
 updateEntete() {
   if (!this.editingEntete || !this.newEntete.libelle.trim()) return;
   
-  const updatedEntete = { ...this.editingEntete, libelle: this.newEntete.libelle };
+  const updatedEntete = {
+    ...this.editingEntete,
+    libelle: this.newEntete.libelle,
+    reference: this.newEntete.reference,
+    numerorevision: this.newEntete.numerorevision,
+    dateApplication: this.newEntete.dateApplication
+  };
   
+  console.log(updatedEntete);
   this.enteteService.updateEntete(updatedEntete.id!, updatedEntete).subscribe({
     next: (entete) => {
       const index = this.entetes.findIndex(e => e.id === entete.id);
@@ -2752,41 +3043,73 @@ updateEntete() {
   });
 }
 saveEntete() {
+  if (!this.newEntete.libelle) {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Le libellé est obligatoire'
+    });
+    return;
+  }
+
   if (this.editingEntete) {
     this.updateEntete();
   } else {
     this.addEntete();
   }
 }
-// Supprimer une entête
-deleteEntete(id: number) {
+confirmDeleteEntete(entete: Entete) {
   this.confirmationService.confirm({
     message: 'Êtes-vous sûr de vouloir supprimer cette entête?',
     header: 'Confirmation',
     icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Oui',
+    rejectLabel: 'Non',
     accept: () => {
-      this.enteteService.deleteEntete(id).subscribe({
-        next: () => {
-          this.entetes = this.entetes.filter(e => e.id !== id);
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Succès',
-            detail: 'Entête supprimée avec succès'
-          });
-        },
-        error: (err) => this.handleErrorr('Erreur lors de la suppression', err)
-      });
+      this.deleteEntete(entete);
     }
   });
+}
+selectedEntete: any;
+
+onEnteteSelect(enteteId: any) {  // Changez le type en any ou number selon ce que renvoie le dropdown
+  if (enteteId && enteteId.id) {  // Si l'option est un objet avec propriété id
+    this.selectedEntete = this.entetes.find(e => e.id === enteteId.id);
+  } else if (enteteId) {  // Si c'est directement l'ID
+    this.selectedEntete = this.entetes.find(e => e.id === enteteId);
+  } else {
+    this.selectedEntete = null;
+  }
+  console.log('Entête sélectionnée:', this.selectedEntete);
+}
+// Méthode pour supprimer une entête
+deleteEntete(entete: Entete) {
+  // Implémentez votre logique de suppression ici
+  // Par exemple, appel à un service API
+  this.enteteService.deleteEntete(entete.id!).subscribe(
+    () => {
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Succès',
+        detail: 'Entête supprimée avec succès'
+      });
+      this.loadEntetes(); // Recharger la liste
+    },
+    error => {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Erreur',
+        detail: 'Erreur lors de la suppression'
+      });
+    }
+  );
 }
 // Dans votre composant, avec les autres variables
 isEditingEntete: boolean = false;
 editingEntete: Entete | null = null;
 // Éditer une entête
 editEntete(entete: Entete) {
-  this.isEditingEntete = true;
-  this.editingEntete = entete;
-  this.newEntete = { ...entete };
+  this.openEnteteDialog(entete);
 }
 
 // Annuler l'édition
@@ -2796,7 +3119,12 @@ cancelEdit() {
 
 // Réinitialiser le formulaire
 resetForm() {
-  this.newEntete = { libelle: '' };
+  this.newEntete = {
+    libelle: '',
+    reference: '',
+    numerorevision: 0,
+    dateApplication: new Date() // Utilisez un objet Date directement
+  };
   this.editingEntete = null;
 }
 

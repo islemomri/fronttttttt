@@ -491,3 +491,109 @@ table, th, td {
   border: 1px solid #ddd;
 }
 
+/* Style pour le dialogue */
+.custom-dialog .p-dialog-header {
+  background-color: #002366; /* Bleu marine */
+  color: white;
+  border-bottom: 1px solid #001a4d;
+}
+
+.custom-dialog .p-dialog-header .p-dialog-title {
+  font-weight: 600;
+}
+
+.custom-dialog .p-dialog-content {
+  padding: 1.5rem;
+}
+
+/* Style des sections */
+.section-title {
+  color: #002366;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Style du formulaire */
+.form-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.form-header {
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 1rem;
+}
+
+/* Style des boutons */
+.p-button-primary {
+  background-color: #002366;
+  border-color: #002366;
+}
+
+.p-button-primary:hover {
+  background-color: #001a4d;
+  border-color: #001a4d;
+}
+
+.p-button-text.p-button-plain {
+  color: #002366;
+}
+
+.p-button-text.p-button-plain:hover {
+  background-color: rgba(0, 35, 102, 0.04);
+}
+
+/* Style de l'aperçu */
+.preview-container {
+  border: 1px solid #e0e0e0;
+  padding: 1rem;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  margin: 0 auto;
+}
+
+
+.logo-cell {
+  width: 15%;
+  vertical-align: middle;
+}
+
+.title-cell {
+  width: 60%;
+  vertical-align: middle;
+}
+
+.label-cell, .value-cell {
+  width: 12.5%;
+}
+
+.logo-img {
+  width: 80px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+
+.inner-table td {
+  padding: 8px;
+  border: none;
+}
+
+.document-type {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.document-title {
+  font-size: 18px;
+  padding-top: 10px;
+}

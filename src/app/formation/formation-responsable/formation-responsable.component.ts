@@ -481,14 +481,6 @@ ngAfterViewInit() {
           if (documentsCount === formation.employes.length) {
             this.checkAllEmployeesEvaluated(formation);
           }
-        },
-        error: (err) => {
-          console.error(`Erreur lors de la récupération du document pour employé ${employe.id} et formation ${formation.id}:`, err);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Erreur',
-            detail: `Document introuvable pour employé ${employe.id}`
-          });
         }
       });
     });
@@ -679,6 +671,8 @@ onPdfDialogHide() {
   }
 }
 navigateToPdfReport(employe: any) {
+  console.log('Selected Formation:', this.selectedFormation);
+  console.log('Selected Employee:', employe);
   if (!this.selectedFormation || !employe) {
     console.error('Données manquantes pour générer le PDF');
     return;
@@ -752,7 +746,7 @@ navigateToPdfReport(employe: any) {
       const dateFinPrevue = formation?.dateFinPrevue || '';
       const responsableEvaluationnom = formation?.responsableEvaluation?.nom || '';
       const responsableEvaluationprenom = formation?.responsableEvaluation?.prenom || '';
-  
+  /*
       // --- Dessin de l'en-tête ---
       const page = pages[0];
       page.drawText(matriculeText, { x: 130, y: 630, size: 12, color: rgb(0, 0, 0) });
@@ -805,7 +799,7 @@ navigateToPdfReport(employe: any) {
           }
         });
       }
-      
+      */
   
       const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -839,26 +833,6 @@ navigateToPdfReport(employe: any) {
   
   
   
-  printPdf() {
-    if (this.selectedPdfUrl) {
-      // Désanctuariser l'URL en une chaîne de caractères
-      const pdfUrl = this.sanitizer.sanitize(4, this.selectedPdfUrl) as string;
-  
-      if (pdfUrl) {
-        const printWindow = window.open(pdfUrl, '_blank');
-        if (printWindow) {
-          printWindow.onload = () => {
-            printWindow.print();
-          };
-        } else {
-          console.error('Impossible d\'ouvrir une nouvelle fenêtre pour l\'impression.');
-        }
-      } else {
-        console.error('URL invalide pour l\'impression.');
-      }
-    } else {
-      console.error('Aucun PDF à imprimer.');
-    }}
 
     private loadFormationsData() {
       const responsableID = localStorage.getItem('RESPONSABLEID');
